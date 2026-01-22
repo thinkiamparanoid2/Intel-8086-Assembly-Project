@@ -1,0 +1,731 @@
+.MODEL SMALL
+.STACK 100H
+
+.DATA
+    ; 1. Login Strings
+    PROMPT_NAME DB 0DH, 0AH, 'ENTER YOUR NAME: $'
+    PROMPT_MAIL DB 0DH, 0AH, 'ENTER G-SUITE MAIL: $'
+    PROMPT_ID   DB 0DH, 0AH, 'ENTER LAST 3 DIGITS OF STUDENT ID: $'
+    SUCCESS_PRE DB 0DH, 0AH, 'LOGIN SUCCESSFUL! WELCOME, $' 
+    SUCCESS_POST DB '!$'                                    
+    FAIL_MSG    DB 0DH, 0AH, 'INVALID DOMAIN. ACCESS DENIED!$'
+    DOMAIN      DB '@g.bracu.ac.bd'
+    DOMAIN_LEN  EQU 14
+    USER_MAIL   DB 50 DUP('$')
+    USER_NAME   DB 50 DUP('$') 
+    USER_ID_STR DB 4 DUP('$') 
+
+    ; 2. Main Menu
+    MAIN_MENU   DB 0DH, 0AH, '--- UNIVERSITY INFO CENTRE ---'
+                DB 0DH, 0AH, '1. LIBRARY (VIEW/BOOK/CANCEL)'
+                DB 0DH, 0AH, '2. CANTEEN (CATEGORIES & RECEIPT)'
+                DB 0DH, 0AH, '3. ST AVAILABILITY'
+                DB 0DH, 0AH, '4. TUITION FEE'
+                DB 0DH, 0AH, '5. EXIT'
+                DB 0DH, 0AH, 'SELECT OPTION: $'
+
+    ; 3. Library Specific Strings
+    MSG_LIB_HEADER DB 0DH, 0AH, 'CURRENT SLOTS STATUS:', 0DH, 0AH, '$'
+    MSG_AVAIL_TAG  DB ' [AVAILABLE]', 0DH, 0AH, '$'
+    MSG_OWNER_PRE  DB ' [ID: $'
+    MSG_OWNER_POST DB ']', 0DH, 0AH, '$' 
+    MSG_DOT_SEP    DB '. $'
+    MSG_LIB_ACT    DB 0DH, 0AH, '1. BOOK A SLOT', 0DH, 0AH, '2. CANCEL A BOOKING', 0DH, 0AH, 'CHOICE: $'
+    MSG_LIB_SLOT   DB 0DH, 0AH, 'ENTER SLOT NUMBER (1-4): $'
+    T1 DB '10:00am$'
+    T2 DB '11:30am$'
+    T3 DB '01:00pm$'
+    T4 DB '02:30pm$'
+    TIME_PTRS DW T1, T2, T3, T4
+    MSG_CANCEL_OK  DB 0DH, 0AH, 'CANCELLATION SUCCESSFUL!$'
+    MSG_CANNOT_CAN DB 0DH, 0AH, 'ERROR: SLOT WAS NOT BOOKED!$'
+    MSG_OK       DB 0DH, 0AH, 'SUCCESSFUL!$'
+    MSG_FULL     DB 0DH, 0AH, 'SORRY, NO SLOTS AVAILABLE!$'
+
+    ; 4. Canteen Data
+    MSG_CAT_MENU DB 0DH, 0AH, '--- CANTEEN CATEGORIES ---'
+                 DB 0DH, 0AH, '1. SNACKS'
+                 DB 0DH, 0AH, '2. MAIN COURSE'
+                 DB 0DH, 0AH, '3. BEVERAGES'
+                 DB 0DH, 0AH, '0. FINISH & PAY'
+                 DB 0DH, 0AH, 'SELECT CATEGORY: $'
+    MSG_SNACK_M  DB 0DH, 0AH, '1.Shingara(10) 2.Donut(50) 3.Popcorn(L:50, S:30): $'
+    MSG_MAIN_M   DB 0DH, 0AH, '1.Biriyani(150) 2.Rice(60) 3.Khichuri(100) 4.FriedRice(140) 5.DumBiriyani(180): $'
+    MSG_BEV_M    DB 0DH, 0AH, '1.Coke(20) 2.Sprite(20) 3.Mango(30) 4.Watermelon(50): $'
+    MSG_POPCORN_SIZE DB 0DH, 0AH, '1.LARGE(50) 2.SMALL(30): $'
+    MSG_QTY      DB 0DH, 0AH, 'ENTER QUANTITY (1-9): $'
+    MSG_BILL_HEAD DB 0DH, 0AH, '--- ITEM ADDED ---', 0DH, 0AH, '$'
+    MSG_BILL_QTY  DB ' x $'
+    MSG_BILL_SUB  DB ' = Subtotal: $'
+    MSG_PAY_PROMPT DB 0DH, 0AH, 0DH, 0AH, '--- PAYMENT SECTION ---', 0DH, 0AH, 'ENTER CASH AMOUNT: $'
+    MSG_INSUF      DB 0DH, 0AH, 'INSUFFICIENT! PLEASE PAY MORE: $'
+    MSG_CHANGE     DB 0DH, 0AH, 'PAYMENT SUCCESSFUL! YOUR CHANGE: $'
+    
+    MSG_COUPON      DB 0DH, 0AH, 'HAVE DISCOUNT COUPON? (Y/N): $'
+    MSG_COUPON_CODE DB 0DH, 0AH, 'ENTER COUPON CODE (A[5%]/B[10%]/C[15%]): $'
+    MSG_INVALID_COUP DB 0DH, 0AH, 'INVALID COUPON CODE!$'
+    MSG_DISCOUNT_APPL DB 0DH, 0AH, 'DISCOUNT APPLIED: $'
+    MSG_FINAL_TOTAL DB 0DH, 0AH, 'FINAL TOTAL AFTER DISCOUNT: $'
+    MSG_TAKA2       DB ' TAKA$'
+
+    ; 5. ST Strings
+    MSG_ST_HEAD  DB 0DH, 0AH, '--- ST AVAILABILITY STATUS ---', 0DH, 0AH, '$'
+    ST1 DB 'Mahmuda($'
+    ST2 DB 'Shafin($'
+    ST3 DB 'Zayed($'
+    ST_RATIO DB '/3)', 0DH, 0AH, '$'
+    ST_PTRS DW ST1, ST2, ST3
+    MSG_ST_SEL DB 0DH, 0AH, 'SELECT ST (1-3): $'
+
+    ; 6. Fee Specific Strings
+    MSG_FEE_PROMPT DB 0DH, 0AH, 'ENTER NO. OF COURSES (1-5): $'
+    MSG_CG_MENU    DB 0DH, 0AH, '--- SCHOLARSHIP RANGE ---'
+                   DB 0DH, 0AH, '1. 3.85 - 4.00 (30%)'
+                   DB 0DH, 0AH, '2. 3.65 - 3.84 (20%)'
+                   DB 0DH, 0AH, '3. 3.50 - 3.64 (10%)'
+                   DB 0DH, 0AH, '4. 3.30 - 3.49 (5%)'
+                   DB 0DH, 0AH, '5. Below 3.30 (No Scholarship)'
+                   DB 0DH, 0AH, 'SELECT YOUR RANGE: $'
+    MSG_CONGRATS   DB 0DH, 0AH, 'Congratulations , you are on scholarship!$'
+    MSG_FEE_LIB    DB 0DH, 0AH, 'Library fee ---- 4500 TAKA$'
+    MSG_FEE_LAB    DB 0DH, 0AH, 'Lab fee -------- 10000 TAKA$'
+    MSG_FEE_COURSE DB 0DH, 0AH, 'Course fee (after waiver) ----- $'
+    MSG_FEE_TOTAL  DB 0DH, 0AH, 0DH, 0AH, '--- GRAND TOTAL: $'
+    MSG_TAKA       DB ' TAKA$' 
+
+    ; Variables
+    LIB_SLOTS    DB 0, 0, 0, 0
+    LIB_OWNERS   DB 12 DUP(' ')    
+    ST_BOOKINGS  DB 0, 0, 0
+    TEMP_TOTAL   DW 0
+    SUB_TOTAL    DW 0
+    CURRENT_PRICE DW 0
+    SAVED_QTY    DW 0
+    PAID_AMOUNT  DW 0
+    UNIT_PRICE   DW 19500
+
+.CODE
+MAIN PROC
+    MOV AX, @DATA
+    MOV DS, AX
+
+    ; --- LOGIN ---
+    LEA DX, PROMPT_NAME
+    MOV AH, 09H
+    INT 21H
+    LEA SI, USER_NAME 
+NAME_LOOP:
+    MOV AH, 01H
+    INT 21H
+    CMP AL, 0DH       
+    JE  END_NAME
+    MOV [SI], AL      
+    INC SI
+    JMP NAME_LOOP
+END_NAME:
+    MOV BYTE PTR [SI], '$' 
+    LEA DX, PROMPT_MAIL
+    MOV AH, 09H
+    INT 21H
+    LEA SI, USER_MAIL
+    MOV CX, 0
+MAIL_LOOP:
+    MOV AH, 01H
+    INT 21H
+    CMP AL, 0DH
+    JE  VAL_MAIL
+    MOV [SI], AL
+    INC SI
+    INC CX
+    JMP MAIL_LOOP
+VAL_MAIL:
+    CMP CX, DOMAIN_LEN
+    JL  LOGIN_FAIL
+    LEA SI, USER_MAIL
+    ADD SI, CX
+    SUB SI, DOMAIN_LEN 
+    LEA DI, DOMAIN
+    MOV CX, DOMAIN_LEN
+COMP_LOOP:
+    MOV AL, [SI]
+    CMP AL, [DI]
+    JNE LOGIN_FAIL
+    INC SI
+    INC DI
+    LOOP COMP_LOOP
+    LEA DX, PROMPT_ID
+    MOV AH, 09H
+    INT 21H
+    LEA SI, USER_ID_STR
+    MOV CX, 3
+ID_INPUT:
+    MOV AH, 01H
+    INT 21H
+    MOV [SI], AL
+    INC SI
+    LOOP ID_INPUT
+    LEA DX, SUCCESS_PRE 
+    MOV AH, 09H
+    INT 21H
+    LEA DX, USER_NAME   
+    MOV AH, 09H
+    INT 21H
+    LEA DX, SUCCESS_POST 
+    MOV AH, 09H
+    INT 21H
+
+HUB:
+    LEA DX, MAIN_MENU
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    CMP AL, '1'
+    JE  LIB_FEAT
+    CMP AL, '2'
+    JE  CAN_FEAT
+    CMP AL, '3'
+    JE  ST_FEAT
+    CMP AL, '4'
+    JE  FEE_FEAT
+    CMP AL, '5'
+    JE  EXIT_CODE
+    JMP HUB
+
+; --- LIBRARY FEATURE ---
+LIB_FEAT:
+    LEA DX, MSG_LIB_HEADER
+    MOV AH, 09H
+    INT 21H
+    MOV CX, 4
+    MOV SI, 0
+    MOV DI, 0
+SHOW_L:
+    MOV DX, SI
+    ADD DL, 31H
+    MOV AH, 02H
+    INT 21H
+    LEA DX, MSG_DOT_SEP
+    MOV AH, 09H
+    INT 21H
+    MOV DX, TIME_PTRS[DI]
+    MOV AH, 09H
+    INT 21H
+    CMP LIB_SLOTS[SI], 1
+    JE  L_SHOW_OWNER
+    LEA DX, MSG_AVAIL_TAG
+    MOV AH, 09H
+    INT 21H
+    JMP L_NEXT_ITER
+L_SHOW_OWNER:
+    LEA DX, MSG_OWNER_PRE 
+    MOV AH, 09H
+    INT 21H
+    PUSH SI
+    MOV AX, SI
+    MOV BL, 3
+    MUL BL
+    MOV BX, AX
+    MOV DL, LIB_OWNERS[BX]
+    MOV AH, 02H
+    INT 21H
+    MOV DL, LIB_OWNERS[BX+1]
+    INT 21H
+    MOV DL, LIB_OWNERS[BX+2]
+    INT 21H
+    POP SI
+    LEA DX, MSG_OWNER_POST 
+    MOV AH, 09H
+    INT 21H
+L_NEXT_ITER:
+    INC SI
+    ADD DI, 2
+    LOOP SHOW_L
+    LEA DX, MSG_LIB_ACT
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    MOV BL, AL 
+    LEA DX, MSG_LIB_SLOT
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    SUB AL, 31H 
+    MOV AH, 0
+    MOV SI, AX
+    CMP BL, '2'
+    JE  LIB_CANCEL_LOGIC
+    CMP LIB_SLOTS[SI], 1
+    JE  L_BUSY
+    MOV LIB_SLOTS[SI], 1
+    PUSH SI
+    MOV AX, SI
+    MOV BL, 3
+    MUL BL
+    MOV BX, AX
+    MOV AL, USER_ID_STR[0]
+    MOV LIB_OWNERS[BX], AL
+    MOV AL, USER_ID_STR[1]
+    MOV LIB_OWNERS[BX+1], AL
+    MOV AL, USER_ID_STR[2]
+    MOV LIB_OWNERS[BX+2], AL
+    POP SI
+    LEA DX, MSG_OK
+    JMP L_DISP
+L_BUSY: LEA DX, MSG_FULL
+    JMP L_DISP
+LIB_CANCEL_LOGIC:
+    CMP LIB_SLOTS[SI], 0
+    JE  L_NOT_BOOKED
+    MOV LIB_SLOTS[SI], 0
+    LEA DX, MSG_CANCEL_OK
+    JMP L_DISP
+L_NOT_BOOKED: LEA DX, MSG_CANNOT_CAN
+L_DISP: MOV AH, 09H
+    INT 21H
+    JMP HUB
+
+; --- CANTEEN FEATURE ---
+CAN_FEAT:
+    MOV TEMP_TOTAL, 0
+CAT_HUB:
+    LEA DX, MSG_CAT_MENU
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    CMP AL, '0'
+    JE  CAN_PAYMENT_INIT
+    CMP AL, '1'
+    JE  CAT_SNACKS
+    CMP AL, '2'
+    JE  CAT_MAIN
+    CMP AL, '3'
+    JE  CAT_BEV
+    JMP CAT_HUB
+CAT_SNACKS:
+    LEA DX, MSG_SNACK_M
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    MOV BL, AL
+    CMP BL, '1'
+    JE  S_10
+    CMP BL, '2'
+    JE  S_50
+    CMP BL, '3'
+    JE  S_POP
+    JMP CAT_HUB
+    S_10: MOV CURRENT_PRICE, 10
+        JMP GET_QTY
+    S_50: MOV CURRENT_PRICE, 50
+        JMP GET_QTY
+    S_POP: 
+        LEA DX, MSG_POPCORN_SIZE
+        MOV AH, 09H
+        INT 21H
+        MOV AH, 01H
+        INT 21H
+        CMP AL, '1'
+        JE  S_50
+        MOV CURRENT_PRICE, 30
+        JMP GET_QTY
+CAT_MAIN:
+    LEA DX, MSG_MAIN_M
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    MOV BL, AL
+    CMP BL, '1'
+    JE  M_150
+    CMP BL, '2'
+    JE  M_60
+    CMP BL, '3'
+    JE  M_100
+    CMP BL, '4'
+    JE  M_140
+    CMP BL, '5'
+    JE  M_180
+    JMP CAT_HUB
+    M_150: MOV CURRENT_PRICE, 150
+        JMP GET_QTY
+    M_60:  MOV CURRENT_PRICE, 60
+        JMP GET_QTY
+    M_100: MOV CURRENT_PRICE, 100
+        JMP GET_QTY
+    M_140: MOV CURRENT_PRICE, 140
+        JMP GET_QTY
+    M_180: MOV CURRENT_PRICE, 180
+        JMP GET_QTY
+CAT_BEV:
+    LEA DX, MSG_BEV_M
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    MOV BL, AL
+    CMP BL, '1'
+    JE  B_20
+    CMP BL, '2'
+    JE  B_20
+    CMP BL, '3'
+    JE  B_30
+    CMP BL, '4'
+    JE  B_50
+    JMP CAT_HUB
+    B_20: MOV CURRENT_PRICE, 20
+        JMP GET_QTY
+    B_30: MOV CURRENT_PRICE, 30
+        JMP GET_QTY
+    B_50: MOV CURRENT_PRICE, 50
+        JMP GET_QTY
+GET_QTY:
+    LEA DX, MSG_QTY
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    SUB AL, 30H
+    MOV AH, 0
+    MOV SAVED_QTY, AX 
+    MOV CX, CURRENT_PRICE
+    MUL CX           
+    MOV SUB_TOTAL, AX
+    ADD TEMP_TOTAL, AX
+    LEA DX, MSG_BILL_HEAD
+    MOV AH, 09H
+    INT 21H
+    MOV AX, CURRENT_PRICE
+    MOV DX, 0
+    CALL PRINT_NUM_NO_TAKA 
+    LEA DX, MSG_BILL_QTY
+    MOV AH, 09H
+    INT 21H
+    MOV AX, SAVED_QTY
+    MOV DX, 0
+    CALL PRINT_NUM_NO_TAKA
+    LEA DX, MSG_BILL_SUB
+    MOV AH, 09H
+    INT 21H
+    MOV AX, SUB_TOTAL
+    MOV DX, 0
+    CALL PRINT_NUM 
+    JMP CAT_HUB
+CAN_PAYMENT_INIT:
+    LEA DX, MSG_FEE_TOTAL 
+    MOV AH, 09H
+    INT 21H
+    MOV AX, TEMP_TOTAL
+    MOV DX, 0
+    CALL PRINT_NUM
+    LEA DX, MSG_COUPON
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    CMP AL, 'Y'
+    JE  APPLY_COUPON
+    CMP AL, 'y'
+    JE  APPLY_COUPON
+    JMP NO_COUPON
+APPLY_COUPON:
+    LEA DX, MSG_COUPON_CODE
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    MOV BX, TEMP_TOTAL
+    PUSH BX
+    CMP AL, 'A'
+    JE  COUPON_5
+    CMP AL, 'a'
+    JE  COUPON_5
+    CMP AL, 'B'
+    JE  COUPON_10
+    CMP AL, 'b'
+    JE  COUPON_10
+    CMP AL, 'C'
+    JE  COUPON_15
+    CMP AL, 'c'
+    JE  COUPON_15
+    LEA DX, MSG_INVALID_COUP
+    MOV AH, 09H
+    INT 21H
+    POP BX  
+    MOV TEMP_TOTAL, BX
+    JMP NO_COUPON
+COUPON_5:
+    MOV AX, TEMP_TOTAL
+    MOV BX, 5
+    MUL BX
+    MOV BX, 100
+    DIV BX
+    JMP APPLY_DISCOUNT
+COUPON_10:
+    MOV AX, TEMP_TOTAL
+    MOV BX, 10
+    MUL BX
+    MOV BX, 100
+    DIV BX
+    JMP APPLY_DISCOUNT
+COUPON_15:
+    MOV AX, TEMP_TOTAL
+    MOV BX, 15
+    MUL BX
+    MOV BX, 100
+    DIV BX
+APPLY_DISCOUNT:
+    PUSH AX
+    LEA DX, MSG_DISCOUNT_APPL
+    MOV AH, 09H
+    INT 21H
+    POP AX
+    PUSH AX
+    MOV DX, 0
+    CALL PRINT_NUM_NO_TAKA
+    LEA DX, MSG_TAKA2
+    MOV AH, 09H
+    INT 21H
+    POP AX
+    POP BX
+    SUB BX, AX
+    MOV TEMP_TOTAL, BX
+    LEA DX, MSG_FINAL_TOTAL
+    MOV AH, 09H
+    INT 21H
+    MOV AX, TEMP_TOTAL
+    MOV DX, 0
+    CALL PRINT_NUM_NO_TAKA
+    LEA DX, MSG_TAKA2
+    MOV AH, 09H
+    INT 21H
+NO_COUPON:
+PAYMENT_PROC:
+    LEA DX, MSG_PAY_PROMPT
+    MOV AH, 09H
+    INT 21H
+    MOV PAID_AMOUNT, 0
+READ_DIGITS:
+    MOV AH, 01H
+    INT 21H
+    CMP AL, 0DH    
+    JE  VERIFY_PAY
+    SUB AL, 30H
+    MOV AH, 0
+    MOV CX, AX
+    MOV AX, PAID_AMOUNT
+    MOV BX, 10
+    MUL BX
+    ADD AX, CX
+    MOV PAID_AMOUNT, AX
+    JMP READ_DIGITS
+VERIFY_PAY:
+    MOV AX, PAID_AMOUNT
+    CMP AX, TEMP_TOTAL
+    JL  PAY_ERROR
+    SUB AX, TEMP_TOTAL
+    MOV PAID_AMOUNT, AX 
+    LEA DX, MSG_CHANGE
+    MOV AH, 09H
+    INT 21H
+    MOV AX, PAID_AMOUNT
+    MOV DX, 0
+    CALL PRINT_NUM
+    JMP HUB
+PAY_ERROR:
+    LEA DX, MSG_INSUF
+    MOV AH, 09H
+    INT 21H
+    JMP PAYMENT_PROC 
+
+ST_FEAT:
+    LEA DX, MSG_ST_HEAD
+    MOV AH, 09H
+    INT 21H
+    MOV CX, 3
+    MOV SI, 0
+    MOV DI, 0
+SHOW_ST_LOOP:
+    MOV DX, SI
+    ADD DL, 31H
+    MOV AH, 02H
+    INT 21H
+    LEA DX, MSG_DOT_SEP
+    MOV AH, 09H
+    INT 21H
+    MOV DX, ST_PTRS[DI]
+    MOV AH, 09H
+    INT 21H
+    MOV AL, ST_BOOKINGS[SI]
+    ADD AL, 30H
+    MOV DL, AL
+    MOV AH, 02H
+    INT 21H
+    LEA DX, ST_RATIO
+    MOV AH, 09H
+    INT 21H
+    INC SI
+    ADD DI, 2
+    LOOP SHOW_ST_LOOP
+    LEA DX, MSG_ST_SEL
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    SUB AL, 31H
+    MOV AH, 0
+    MOV SI, AX
+    MOV BL, ST_BOOKINGS[SI]
+    CMP BL, 3
+    JGE S_BUSY_ST
+    INC ST_BOOKINGS[SI]
+    LEA DX, MSG_OK
+    JMP S_DISP_ST
+S_BUSY_ST: LEA DX, MSG_FULL
+S_DISP_ST: MOV AH, 09H
+    INT 21H
+    JMP HUB
+
+; ==========================================================
+; FINAL FIXED SCHOLARSHIP LOGIC
+; ==========================================================
+FEE_FEAT:
+    LEA DX, MSG_FEE_PROMPT
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    SUB AL, 30H      
+    MOV AH, 0
+    PUSH AX          
+
+    LEA DX, MSG_CG_MENU
+    MOV AH, 09H
+    INT 21H
+    MOV AH, 01H
+    INT 21H
+    MOV BL, AL       
+    MOV UNIT_PRICE, 19500 
+
+    CMP BL, '1'
+    JE  SCH_30
+    CMP BL, '2'
+    JE  SCH_20
+    CMP BL, '3'
+    JE  SCH_10
+    CMP BL, '4'
+    JE  SCH_5
+    JMP CALC_FINAL_FEES
+
+SCH_30: 
+    MOV UNIT_PRICE, 13650 ; 30% Waiver
+    JMP SCH_WIN
+SCH_20: 
+    MOV UNIT_PRICE, 15600 ; 20% Waiver
+    JMP SCH_WIN
+SCH_10: 
+    MOV UNIT_PRICE, 17550 ; 10% Waiver
+    JMP SCH_WIN
+SCH_5:  
+    MOV UNIT_PRICE, 18525 ; 5% Waiver
+    JMP SCH_WIN
+
+SCH_WIN:
+    LEA DX, MSG_CONGRATS
+    MOV AH, 09H
+    INT 21H
+
+CALC_FINAL_FEES:
+    POP AX           ; Restore Course Count (Example: 5)
+    MOV CX, UNIT_PRICE ; Example: 13650
+    MUL CX           ; AX = 2714 (low part), DX = 1 (high part)
+    
+    ; DO NOT CLEAR DX HERE! IT HOLDS THE "65536" part of 68250!
+    PUSH DX          ; Save high part (1)
+    PUSH AX          ; Save low part (2714)
+
+    LEA DX, MSG_FEE_LIB
+    MOV AH, 09H
+    INT 21H
+    LEA DX, MSG_FEE_LAB
+    MOV AH, 09H
+    INT 21H
+    LEA DX, MSG_FEE_COURSE
+    MOV AH, 09H
+    INT 21H
+    
+    POP AX           
+    POP DX           
+    PUSH DX          
+    PUSH AX          
+    CALL PRINT_NUM_CORE
+    LEA DX, MSG_TAKA
+    MOV AH, 09H
+    INT 21H
+
+    LEA DX, MSG_FEE_TOTAL
+    MOV AH, 09H
+    INT 21H
+    
+    POP AX           ; Pop Low (2714)
+    POP DX           ; Pop High (1)
+    
+    ADD AX, 14500    ; 2714 + 14500 = 17214
+    ADC DX, 0        ; 1 + 0 = 1
+    
+    ; Now DX:AX = 1:17214, which prints as 82750!
+    CALL PRINT_NUM_CORE
+    LEA DX, MSG_TAKA
+    MOV AH, 09H
+    INT 21H
+    JMP HUB
+
+LOGIN_FAIL:
+    LEA DX, FAIL_MSG
+    MOV AH, 09H
+    INT 21H
+EXIT_CODE:
+    MOV AX, 4C00H
+    INT 21H
+MAIN ENDP
+
+; --- PRINTING PROCEDURES ---
+PRINT_NUM PROC
+    CALL PRINT_NUM_CORE
+    LEA DX, MSG_TAKA
+    MOV AH, 09H
+    INT 21H
+    RET
+PRINT_NUM ENDP
+PRINT_NUM_NO_TAKA PROC
+    CALL PRINT_NUM_CORE
+    RET
+PRINT_NUM_NO_TAKA ENDP
+PRINT_NUM_CORE PROC 
+    MOV CX, 0       
+    MOV BX, 10      
+P1: PUSH AX         
+    MOV AX, DX      
+    MOV DX, 0
+    DIV BX          
+    MOV BP, AX      
+    POP AX          
+    DIV BX          
+    PUSH DX         
+    INC CX
+    MOV DX, BP      
+    OR AX, DX       
+    JNE P1
+P2: POP DX          
+    ADD DL, 48      
+    MOV AH, 02H     
+    INT 21H
+    LOOP P2
+    RET
+PRINT_NUM_CORE ENDP
+
+END MAIN
